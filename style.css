@@ -3,28 +3,28 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
     margin: 0;
     padding: 0;
-    width: 100vw;
-    height: 100vh;
-    background: radial-gradient(circle at center, #1b002c 0%, #080010 100%);
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #080010;
     font-family: 'Orbitron', 'Press Start 2P', sans-serif;
     overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     touch-action: none;
 }
 
 #game-container {
-    position: relative;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     width: 100vw;
     height: 100vh;
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     overflow: hidden;
@@ -43,97 +43,96 @@ html, body {
 }
 
 canvas {
+    width: 100% !important;
+    height: 100% !important;
     display: block;
-    max-width: 100vw;
-    max-height: 100vh;
-    object-fit: contain;
 }
 
 /* Touch Controls Overlay */
 #touch-controls {
-    position: absolute;
-    bottom: 20px;
+    position: fixed;
+    bottom: calc(15px + env(safe-area-inset-bottom, 0px));
     left: 0;
     right: 0;
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 25px;
-    z-index: 20;
+    padding: 0 calc(20px + env(safe-area-inset-left, 0px));
+    z-index: 999;
     pointer-events: none;
 }
 
 .dpad {
     display: flex;
-    gap: 16px;
+    gap: 12px;
     pointer-events: auto;
 }
 
 .touch-btn {
-    width: 72px;
-    height: 72px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
-    background: rgba(0, 243, 255, 0.18);
+    background: rgba(0, 243, 255, 0.25);
     border: 2px solid #00f3ff;
     color: #00f3ff;
     font-family: 'Orbitron', sans-serif;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: bold;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.2);
-    touch-action: manipulation;
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.3);
+    touch-action: none;
     user-select: none;
     -webkit-user-select: none;
     outline: none;
     cursor: pointer;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    transition: transform 0.1s ease, background 0.1s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.08s ease, background 0.08s ease;
     pointer-events: auto;
 }
 
 .touch-btn:active, .touch-btn.active {
-    background: rgba(0, 243, 255, 0.55);
-    box-shadow: 0 0 25px rgba(0, 243, 255, 0.8), inset 0 0 15px #00f3ff;
-    transform: scale(0.92);
+    background: rgba(0, 243, 255, 0.7);
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.9), inset 0 0 15px #00f3ff;
+    transform: scale(0.9);
 }
 
 .jump-btn {
-    width: 86px;
-    height: 86px;
-    background: rgba(255, 0, 170, 0.22);
+    width: 82px;
+    height: 82px;
+    background: rgba(255, 0, 170, 0.3);
     border-color: #ff00aa;
     color: #ff00aa;
-    font-size: 15px;
+    font-size: 14px;
     letter-spacing: 1px;
-    box-shadow: 0 0 20px rgba(255, 0, 170, 0.4), inset 0 0 10px rgba(255, 0, 170, 0.2);
+    box-shadow: 0 0 20px rgba(255, 0, 170, 0.5), inset 0 0 10px rgba(255, 0, 170, 0.3);
 }
 
 .jump-btn:active, .jump-btn.active {
-    background: rgba(255, 0, 170, 0.65);
-    box-shadow: 0 0 35px rgba(255, 0, 170, 0.9), inset 0 0 20px #ff00aa;
-    transform: scale(0.92);
+    background: rgba(255, 0, 170, 0.8);
+    box-shadow: 0 0 35px rgba(255, 0, 170, 1), inset 0 0 20px #ff00aa;
+    transform: scale(0.9);
 }
 
-/* Responsive adjustments for Mobile & Portrait mode */
-@media (max-width: 768px), (max-aspect-ratio: 1/1) {
+/* Portrait adjustments */
+@media (max-width: 600px), (max-aspect-ratio: 1/1) {
     #touch-controls {
-        bottom: 25px;
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
         padding: 0 15px;
     }
     
     .touch-btn {
-        width: 65px;
-        height: 65px;
-        font-size: 22px;
+        width: 62px;
+        height: 62px;
+        font-size: 20px;
     }
     
     .jump-btn {
-        width: 80px;
-        height: 80px;
-        font-size: 13px;
+        width: 76px;
+        height: 76px;
+        font-size: 12px;
     }
 }

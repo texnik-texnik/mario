@@ -253,38 +253,39 @@ class MenuScene extends Phaser.Scene {
         }
 
         // Title text with Cyber Glow
-        const title = this.add.text(width / 2, height / 3, 'CYBER DASH', {
+        const titleSize = width < 480 ? '36px' : '64px';
+        const title = this.add.text(width / 2, height / 3.5, 'CYBER DASH', {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '64px',
+            fontSize: titleSize,
             fontStyle: '900',
             fill: '#00f3ff',
             stroke: '#ff00aa',
-            strokeThickness: 8,
+            strokeThickness: width < 480 ? 4 : 8,
             shadow: { offsetX: 0, offsetY: 0, color: '#00f3ff', blur: 25, stroke: true, fill: true }
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, height / 3 + 60, '// SYNTHWAVE PLATFORMER //', {
+        this.add.text(width / 2, height / 3.5 + (width < 480 ? 42 : 65), '// SYNTHWAVE PLATFORMER //', {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '18px',
+            fontSize: width < 480 ? '12px' : '18px',
             fill: '#ff00aa',
-            letterSpacing: 4
+            letterSpacing: 2
         }).setOrigin(0.5);
 
         // Highscore
         this.add.text(width / 2, height / 2.1, `TOP SCORE: ${gameState.highscore}`, {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '22px',
+            fontSize: width < 480 ? '17px' : '22px',
             fill: '#ffffff'
         }).setOrigin(0.5);
 
         // Start Button
         const startBtn = this.add.text(width / 2, height / 1.5, '▶ ENTER GRID', {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '32px',
+            fontSize: width < 480 ? '22px' : '32px',
             fontStyle: '700',
             fill: '#000000',
             backgroundColor: '#00f3ff',
-            padding: { x: 30, y: 15 }
+            padding: { x: width < 480 ? 20 : 30, y: width < 480 ? 10 : 15 }
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
@@ -430,30 +431,35 @@ class PlayScene extends Phaser.Scene {
     }
 
     createHUD() {
-        // Floating HUD Panel
+        const width = this.scale.width;
+        const isMobile = width < 500;
+        const hudWidth = Math.min(width - 30, 420);
         const hudBox = this.add.graphics().setScrollFactor(0);
-        hudBox.fillStyle(0x000000, 0.5);
-        hudBox.fillRoundedRect(15, 15, 420, 45, 8);
+        hudBox.fillStyle(0x000000, 0.6);
+        hudBox.fillRoundedRect(15, 12, hudWidth, 42, 8);
         hudBox.lineStyle(2, 0x00f3ff, 0.8);
-        hudBox.strokeRoundedRect(15, 15, 420, 45, 8);
+        hudBox.strokeRoundedRect(15, 12, hudWidth, 42, 8);
 
-        this.scoreText = this.add.text(30, 26, `SCORE: ${gameState.score}`, {
+        const fontSize = isMobile ? '12px' : '15px';
+        const colWidth = hudWidth / 3;
+
+        this.scoreText = this.add.text(15 + colWidth * 0.1, 23, `SCORE: ${gameState.score}`, {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '16px',
+            fontSize: fontSize,
             fontStyle: '700',
             fill: '#00f3ff'
         }).setScrollFactor(0);
 
-        this.livesText = this.add.text(180, 26, `LIVES: ${gameState.lives}`, {
+        this.livesText = this.add.text(15 + colWidth * 1.1, 23, `LIVES: ${gameState.lives}`, {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '16px',
+            fontSize: fontSize,
             fontStyle: '700',
             fill: '#ff00aa'
         }).setScrollFactor(0);
 
-        this.levelText = this.add.text(300, 26, `LEVEL: ${gameState.currentLevel}/10`, {
+        this.levelText = this.add.text(15 + colWidth * 2.1, 23, `LVL: ${gameState.currentLevel}/10`, {
             fontFamily: "'Orbitron', sans-serif",
-            fontSize: '16px',
+            fontSize: fontSize,
             fontStyle: '700',
             fill: '#ffd700'
         }).setScrollFactor(0);
@@ -725,10 +731,8 @@ class VictoryScene extends Phaser.Scene {
 const config = {
     type: Phaser.AUTO,
     parent: 'game-container',
-    width: 800,
-    height: 600,
     scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH
     },
     physics: {
