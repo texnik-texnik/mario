@@ -11,7 +11,16 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
 <body>
-    <div id="game-container"></div>
+    <div id="game-container">
+        <!-- Touch Overlay for Mobile/Tablet in Portrait & Landscape -->
+        <div id="touch-controls">
+            <div class="dpad">
+                <button id="btn-left" class="touch-btn">◄</button>
+                <button id="btn-right" class="touch-btn">►</button>
+            </div>
+            <button id="btn-jump" class="touch-btn jump-btn">▲ JUMP</button>
+        </div>
+    </div>
     <script src="levels.js"></script>
     <script src="script.js"></script>
 </body>

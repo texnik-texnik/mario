@@ -235,6 +235,9 @@ class MenuScene extends Phaser.Scene {
         const { width, height } = this.scale;
         sfx.init();
 
+        const touchContainer = document.getElementById('touch-controls');
+        if (touchContainer) touchContainer.style.display = 'none';
+
         // Background Cyber Gradient
         const bg = this.add.graphics();
         bg.fillGradientStyle(0x080010, 0x080010, 0x2a0845, 0x2a0845, 1);
@@ -457,44 +460,45 @@ class PlayScene extends Phaser.Scene {
     }
 
     createTouchControls() {
-        const { width, height } = this.scale;
-        const btnSize = 75;
-        
-        // Touch states
         this.touchStates = { left: false, right: false, jump: false };
 
-        // Left Button
-        const leftBtn = this.add.rectangle(btnSize/2 + 25, height - btnSize/2 - 25, btnSize, btnSize, 0x00f3ff, 0.25)
-            .setScrollFactor(0).setInteractive();
-        this.add.text(btnSize/2 + 25, height - btnSize/2 - 25, '◄', { fontSize: '32px', fill: '#00f3ff' })
-            .setOrigin(0.5).setScrollFactor(0);
+        const touchContainer = document.getElementById('touch-controls');
+        if (touchContainer) {
+            touchContainer.style.display = 'flex';
+        }
 
-        // Right Button
-        const rightBtn = this.add.rectangle(btnSize*1.5 + 45, height - btnSize/2 - 25, btnSize, btnSize, 0x00f3ff, 0.25)
-            .setScrollFactor(0).setInteractive();
-        this.add.text(btnSize*1.5 + 45, height - btnSize/2 - 25, '►', { fontSize: '32px', fill: '#00f3ff' })
-            .setOrigin(0.5).setScrollFactor(0);
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnJump = document.getElementById('btn-jump');
 
-        // Jump Button
-        const jumpBtn = this.add.rectangle(width - btnSize/2 - 25, height - btnSize/2 - 25, btnSize, btnSize, 0xff00aa, 0.3)
-            .setScrollFactor(0).setInteractive();
-        this.add.text(width - btnSize/2 - 25, height - btnSize/2 - 25, '▲', { fontSize: '32px', fill: '#ff00aa' })
-            .setOrigin(0.5).setScrollFactor(0);
+        const setupBtn = (btn, stateKey, isJump = false) => {
+            if (!btn) return;
 
-        leftBtn.on('pointerdown', () => this.touchStates.left = true);
-        leftBtn.on('pointerup', () => this.touchStates.left = false);
-        leftBtn.on('pointerout', () => this.touchStates.left = false);
+            const handleDown = (e) => {
+                if (e && e.cancelable) e.preventDefault();
+                this.touchStates[stateKey] = true;
+                btn.classList.add('active');
+                if (isJump) this.handleJump();
+            };
 
-        rightBtn.on('pointerdown', () => this.touchStates.right = true);
-        rightBtn.on('pointerup', () => this.touchStates.right = false);
-        rightBtn.on('pointerout', () => this.touchStates.right = false);
+            const handleUp = (e) => {
+                if (e && e.cancelable) e.preventDefault();
+                this.touchStates[stateKey] = false;
+                btn.classList.remove('active');
+            };
 
-        jumpBtn.on('pointerdown', () => {
-            this.touchStates.jump = true;
-            this.handleJump();
-        });
-        jumpBtn.on('pointerup', () => this.touchStates.jump = false);
-        jumpBtn.on('pointerout', () => this.touchStates.jump = false);
+            btn.onpointerdown = handleDown;
+            btn.onpointerup = handleUp;
+            btn.onpointercancel = handleUp;
+            btn.onmouseleave = handleUp;
+            btn.ontouchstart = handleDown;
+            btn.ontouchend = handleUp;
+            btn.ontouchcancel = handleUp;
+        };
+
+        setupBtn(btnLeft, 'left');
+        setupBtn(btnRight, 'right');
+        setupBtn(btnJump, 'jump', true);
     }
 
     handleJump() {
@@ -618,6 +622,9 @@ class GameOverScene extends Phaser.Scene {
     create() {
         const { width, height } = this.scale;
         
+        const touchContainer = document.getElementById('touch-controls');
+        if (touchContainer) touchContainer.style.display = 'none';
+
         if (gameState.score > gameState.highscore) {
             gameState.highscore = gameState.score;
             localStorage.setItem('cyber_highscore', gameState.highscore.toString());
@@ -665,6 +672,9 @@ class VictoryScene extends Phaser.Scene {
 
     create() {
         const { width, height } = this.scale;
+
+        const touchContainer = document.getElementById('touch-controls');
+        if (touchContainer) touchContainer.style.display = 'none';
 
         if (gameState.score > gameState.highscore) {
             gameState.highscore = gameState.score;
