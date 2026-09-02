@@ -1,16 +1,142 @@
 /**
- * Retro Platformer - Mario Clone
- * Powered by Phaser 3
+ * CYBER DASH // Synthwave Retro Platformer
+ * Powered by Phaser 3 & Procedural WebAudio Synthesizer
  */
-
 
 // --- Global State ---
 let gameState = {
     score: 0,
     lives: 3,
     currentLevel: 1,
-    highscore: localStorage.getItem('retro_highscore') || 0
+    highscore: parseInt(localStorage.getItem('cyber_highscore') || '0', 10)
 };
+
+// --- WebAudio Synthesizer (Crash-Free SFX) ---
+class SoundFX {
+    constructor() {
+        this.ctx = null;
+    }
+
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                this.ctx = new AudioCtx();
+            }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    playJump() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(650, this.ctx.currentTime + 0.12);
+            
+            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.12);
+        } catch (e) { console.error(e); }
+    }
+
+    playCoin() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(987.77, now); // B5
+            osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+            
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.22);
+        } catch (e) { console.error(e); }
+    }
+
+    playStomp() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(240, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+            
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        } catch (e) { console.error(e); }
+    }
+
+    playDie() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(450, now);
+            osc.frequency.linearRampToValueAtTime(70, now + 0.4);
+            
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } catch (e) { console.error(e); }
+    }
+
+    playWin() {
+        this.init();
+        if (!this.ctx) return;
+        try {
+            const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+            notes.forEach((freq, idx) => {
+                const now = this.ctx.currentTime + idx * 0.1;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, now);
+                
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            });
+        } catch (e) { console.error(e); }
+    }
+}
+
+const sfx = new SoundFX();
 
 // --- BootScene ---
 class BootScene extends Phaser.Scene {
@@ -19,24 +145,79 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // Load game sprites
-        this.load.image('ground', 'assets/ground.svg');
-        this.load.image('brick', 'assets/brick.svg');
-        this.load.image('coin', 'assets/coin.svg');
-        this.load.image('enemy', 'assets/enemy.svg');
-        this.load.image('finish', 'assets/finish.svg');
-        this.load.image('player', 'assets/player.svg');
-        
-        // Load sound effects
-        this.load.audio('jump', 'assets/sounds/jump.mp3');
-        this.load.audio('coin', 'assets/sounds/coin.mp3');
-        this.load.audio('die', 'assets/sounds/die.mp3');
-        this.load.audio('win', 'assets/sounds/win.mp3');
+        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
 
-        // Backgrounds
-        this.load.image('menu-background', 'assets/menu-background.svg');
-        this.load.image('gameover-background', 'assets/gameover-background.svg');
-        this.load.image('victory-background', 'assets/victory-background.svg');
+        // 1. Player (Cyan Cyber Runner with glowing visor & core)
+        graphics.fillStyle(0x00f3ff, 1);
+        graphics.fillRoundedRect(0, 0, 32, 32, 6);
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillRect(18, 6, 10, 6); // Visor
+        graphics.fillStyle(0xff00aa, 1);
+        graphics.fillCircle(10, 18, 4); // Core
+        graphics.generateTexture('player', 32, 32);
+        graphics.clear();
+
+        // 2. Ground Tile (Dark synth tile with glowing cyan top border)
+        graphics.fillStyle(0x130b24, 1);
+        graphics.fillRect(0, 0, 40, 40);
+        graphics.fillStyle(0x00f3ff, 1);
+        graphics.fillRect(0, 0, 40, 4); // Neon Cyan Edge
+        graphics.fillStyle(0x28124d, 1);
+        graphics.fillRect(2, 6, 36, 32);
+        graphics.generateTexture('ground', 40, 40);
+        graphics.clear();
+
+        // 3. Tech Brick (Magenta glowing grid block)
+        graphics.fillStyle(0x260021, 1);
+        graphics.fillRect(0, 0, 40, 40);
+        graphics.lineStyle(2, 0xff00aa, 1);
+        graphics.strokeRect(2, 2, 36, 36);
+        graphics.fillStyle(0xff00aa, 0.6);
+        graphics.fillRect(10, 10, 20, 20);
+        graphics.generateTexture('brick', 40, 40);
+        graphics.clear();
+
+        // 4. Data Coin (Golden glowing sphere with inner core)
+        graphics.fillStyle(0xffb700, 1);
+        graphics.fillCircle(10, 10, 10);
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillCircle(10, 10, 5);
+        graphics.generateTexture('coin', 20, 20);
+        graphics.clear();
+
+        // 5. Cyber Enemy (Crimson Glitch Bug with yellow eyes)
+        graphics.fillStyle(0xff0055, 1);
+        graphics.fillRoundedRect(0, 0, 32, 32, 4);
+        graphics.fillStyle(0xffff00, 1);
+        graphics.fillRect(6, 6, 6, 6);
+        graphics.fillRect(20, 6, 6, 6);
+        graphics.fillStyle(0x000000, 1);
+        graphics.fillRect(8, 8, 2, 2);
+        graphics.fillRect(22, 8, 2, 2);
+        graphics.generateTexture('enemy', 32, 32);
+        graphics.clear();
+
+        // 6. Finish Portal (Beacon with glowing cyan/pink light bar)
+        graphics.fillStyle(0x00f3ff, 0.3);
+        graphics.fillRect(0, 0, 40, 100);
+        graphics.fillStyle(0xff00aa, 1);
+        graphics.fillRect(0, 0, 40, 10);
+        graphics.fillStyle(0x00f3ff, 1);
+        graphics.fillRect(16, 10, 8, 90);
+        graphics.generateTexture('finish', 40, 100);
+        graphics.clear();
+
+        // 7. Particle Spark Texture
+        graphics.fillStyle(0x00f3ff, 1);
+        graphics.fillCircle(4, 4, 4);
+        graphics.generateTexture('spark', 8, 8);
+        graphics.clear();
+
+        // 8. Gold Particle Spark Texture
+        graphics.fillStyle(0xffd700, 1);
+        graphics.fillCircle(4, 4, 4);
+        graphics.generateTexture('gold-spark', 8, 8);
+        graphics.clear();
     }
 
     create() {
@@ -52,49 +233,77 @@ class MenuScene extends Phaser.Scene {
 
     create() {
         const { width, height } = this.scale;
+        sfx.init();
 
-        // Background
-        this.add.image(0, 0, 'menu-background').setOrigin(0).setDisplaySize(width, height);
-        
-        // Title
-        this.add.text(width / 2, height / 3, 'RETRO CLONE', {
+        // Background Cyber Gradient
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x080010, 0x080010, 0x2a0845, 0x2a0845, 1);
+        bg.fillRect(0, 0, width, height);
+
+        // Synthwave Starfield / Grid decoration
+        for (let i = 0; i < 60; i++) {
+            let x = Phaser.Math.Between(0, width);
+            let y = Phaser.Math.Between(0, height);
+            let size = Phaser.Math.Between(1, 3);
+            let alpha = Phaser.Math.FloatBetween(0.3, 0.9);
+            this.add.circle(x, y, size, 0x00f3ff, alpha);
+        }
+
+        // Title text with Cyber Glow
+        const title = this.add.text(width / 2, height / 3, 'CYBER DASH', {
+            fontFamily: "'Orbitron', sans-serif",
             fontSize: '64px',
-            fill: '#fff',
-            fontStyle: 'bold',
-            stroke: '#000',
-            strokeThickness: 6
+            fontStyle: '900',
+            fill: '#00f3ff',
+            stroke: '#ff00aa',
+            strokeThickness: 8,
+            shadow: { offsetX: 0, offsetY: 0, color: '#00f3ff', blur: 25, stroke: true, fill: true }
+        }).setOrigin(0.5);
+
+        this.add.text(width / 2, height / 3 + 60, '// SYNTHWAVE PLATFORMER //', {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '18px',
+            fill: '#ff00aa',
+            letterSpacing: 4
         }).setOrigin(0.5);
 
         // Highscore
-        this.add.text(width / 2, height / 2.2, `HIGHSCORE: ${gameState.highscore}`, {
-            fontSize: '24px',
-            fill: '#fff'
+        this.add.text(width / 2, height / 2.1, `TOP SCORE: ${gameState.highscore}`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '22px',
+            fill: '#ffffff'
         }).setOrigin(0.5);
 
         // Start Button
-        const startBtn = this.add.text(width / 2, height / 1.5, 'START GAME', {
-            fontSize: '48px',
-            fill: '#0f0',
-            backgroundColor: '#000',
-            padding: { x: 20, y: 10 }
+        const startBtn = this.add.text(width / 2, height / 1.5, '▶ ENTER GRID', {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '32px',
+            fontStyle: '700',
+            fill: '#000000',
+            backgroundColor: '#00f3ff',
+            padding: { x: 30, y: 15 }
         })
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
-        // Pulsing effect
+        // Pulsing Tween
         this.tweens.add({
             targets: startBtn,
-            scale: 1.1,
-            duration: 800,
+            scale: 1.08,
+            duration: 700,
             yoyo: true,
             repeat: -1
         });
 
+        startBtn.on('pointerover', () => startBtn.setStyle({ fill: '#ffffff', backgroundColor: '#ff00aa' }));
+        startBtn.on('pointerout', () => startBtn.setStyle({ fill: '#000000', backgroundColor: '#00f3ff' }));
+
         startBtn.on('pointerdown', () => {
+            sfx.playJump();
             gameState.score = 0;
             gameState.lives = 3;
             gameState.currentLevel = 1;
-            this.cameras.main.fadeOut(500);
+            this.cameras.main.fadeOut(400);
             this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('PlayScene'));
         });
     }
@@ -113,12 +322,23 @@ class PlayScene extends Phaser.Scene {
     create() {
         const { width, height } = this.scale;
 
-        // World Bounds
-        this.physics.world.setBounds(0, 0, this.levelData.width, height + 100);
+        // World & Camera Bounds
+        this.physics.world.setBounds(0, 0, this.levelData.width, height + 150);
         this.cameras.main.setBounds(0, 0, this.levelData.width, height);
 
-        // Background
-        this.add.rectangle(0, 0, this.levelData.width, height, 0x87CEEB).setOrigin(0).setScrollFactor(1);
+        // Background Cyber Sky
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x0a0014, 0x0a0014, 0x1d0536, 0x1d0536, 1);
+        bg.fillRect(0, 0, this.levelData.width, height);
+        bg.setScrollFactor(0);
+
+        // Parallax Stars
+        for (let i = 0; i < 80; i++) {
+            let x = Phaser.Math.Between(0, this.levelData.width);
+            let y = Phaser.Math.Between(0, height);
+            let circle = this.add.circle(x, y, Phaser.Math.Between(1, 2), 0x00f3ff, Phaser.Math.FloatBetween(0.2, 0.7));
+            circle.setScrollFactor(0.3);
+        }
 
         // Groups
         this.platforms = this.physics.add.staticGroup();
@@ -126,7 +346,6 @@ class PlayScene extends Phaser.Scene {
         this.coins = this.physics.add.group();
         this.enemies = this.physics.add.group();
 
-        // Create Level Geometry
         // Ground
         this.levelData.ground.forEach(g => {
             let x = g[0];
@@ -156,7 +375,15 @@ class PlayScene extends Phaser.Scene {
         // Coins
         this.levelData.coins.forEach(c => {
             const coin = this.coins.create(c[0], c[1], 'coin');
-            coin.setBounceY(0.4);
+            coin.setBounceY(0.3);
+            this.tweens.add({
+                targets: coin,
+                y: c[1] - 6,
+                duration: 900,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
         });
 
         // Enemies
@@ -164,16 +391,16 @@ class PlayScene extends Phaser.Scene {
             const enemy = this.enemies.create(e[0], e[1], 'enemy');
             enemy.setBounce(1, 0);
             enemy.setCollideWorldBounds(true);
-            enemy.setVelocityX(-100);
+            enemy.setVelocityX(-120);
         });
 
         // Finish Line
-        this.finishLine = this.physics.add.staticSprite(this.levelData.finish, height - 120, 'finish');
+        this.finishLine = this.physics.add.staticSprite(this.levelData.finish, height - 90, 'finish');
 
         // Player
         this.player = this.physics.add.sprite(100, height - 100, 'player');
         this.player.setCollideWorldBounds(true);
-        this.player.setBounce(0.1);
+        this.player.setBounce(0.05);
 
         // Collisions
         this.physics.add.collider(this.player, this.platforms);
@@ -187,112 +414,181 @@ class PlayScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
         this.physics.add.overlap(this.player, this.finishLine, this.reachFinish, null, this);
 
-        // Camera follow
+        // Camera Follow
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
         // Controls
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasd = this.input.keyboard.addKeys('W,A,S,D');
 
-        // UI HUD
+        // HUD & Mobile Controls
         this.createHUD();
         this.createTouchControls();
     }
 
     createHUD() {
-        const { height } = this.scale;
-        this.scoreText = this.add.text(20, 20, `SCORE: ${gameState.score}`, { fontSize: '24px', fill: '#000' }).setScrollFactor(0);
-        this.livesText = this.add.text(20, 50, `LIVES: ${gameState.lives}`, { fontSize: '24px', fill: '#000' }).setScrollFactor(0);
-        this.levelText = this.add.text(20, 80, `LEVEL: ${gameState.currentLevel}`, { fontSize: '24px', fill: '#000' }).setScrollFactor(0);
+        // Floating HUD Panel
+        const hudBox = this.add.graphics().setScrollFactor(0);
+        hudBox.fillStyle(0x000000, 0.5);
+        hudBox.fillRoundedRect(15, 15, 420, 45, 8);
+        hudBox.lineStyle(2, 0x00f3ff, 0.8);
+        hudBox.strokeRoundedRect(15, 15, 420, 45, 8);
+
+        this.scoreText = this.add.text(30, 26, `SCORE: ${gameState.score}`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '16px',
+            fontStyle: '700',
+            fill: '#00f3ff'
+        }).setScrollFactor(0);
+
+        this.livesText = this.add.text(180, 26, `LIVES: ${gameState.lives}`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '16px',
+            fontStyle: '700',
+            fill: '#ff00aa'
+        }).setScrollFactor(0);
+
+        this.levelText = this.add.text(300, 26, `LEVEL: ${gameState.currentLevel}/10`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '16px',
+            fontStyle: '700',
+            fill: '#ffd700'
+        }).setScrollFactor(0);
     }
 
     createTouchControls() {
         const { width, height } = this.scale;
-        const btnSize = 80;
+        const btnSize = 75;
         
-        // Left
-        this.leftBtn = this.add.rectangle(btnSize/2 + 20, height - btnSize/2 - 20, btnSize, btnSize, 0xffffff, 0.3)
-            .setScrollFactor(0).setInteractive();
-        this.add.text(btnSize/2 + 20, height - btnSize/2 - 20, '<', { fontSize: '40px' }).setOrigin(0.5).setScrollFactor(0);
-
-        // Right
-        this.rightBtn = this.add.rectangle(btnSize*1.5 + 40, height - btnSize/2 - 20, btnSize, btnSize, 0xffffff, 0.3)
-            .setScrollFactor(0).setInteractive();
-        this.add.text(btnSize*1.5 + 40, height - btnSize/2 - 20, '>', { fontSize: '40px' }).setOrigin(0.5).setScrollFactor(0);
-
-        // Jump
-        this.jumpBtn = this.add.rectangle(width - btnSize/2 - 20, height - btnSize/2 - 20, btnSize, btnSize, 0xffffff, 0.3)
-            .setScrollFactor(0).setInteractive();
-        this.add.text(width - btnSize/2 - 20, height - btnSize/2 - 20, '^', { fontSize: '40px' }).setOrigin(0.5).setScrollFactor(0);
-
+        // Touch states
         this.touchStates = { left: false, right: false, jump: false };
 
-        this.leftBtn.on('pointerdown', () => this.touchStates.left = true);
-        this.leftBtn.on('pointerup', () => this.touchStates.left = false);
-        this.leftBtn.on('pointerout', () => this.touchStates.left = false);
+        // Left Button
+        const leftBtn = this.add.rectangle(btnSize/2 + 25, height - btnSize/2 - 25, btnSize, btnSize, 0x00f3ff, 0.25)
+            .setScrollFactor(0).setInteractive();
+        this.add.text(btnSize/2 + 25, height - btnSize/2 - 25, '◄', { fontSize: '32px', fill: '#00f3ff' })
+            .setOrigin(0.5).setScrollFactor(0);
 
-        this.rightBtn.on('pointerdown', () => this.touchStates.right = true);
-        this.rightBtn.on('pointerup', () => this.touchStates.right = false);
-        this.rightBtn.on('pointerout', () => this.touchStates.right = false);
+        // Right Button
+        const rightBtn = this.add.rectangle(btnSize*1.5 + 45, height - btnSize/2 - 25, btnSize, btnSize, 0x00f3ff, 0.25)
+            .setScrollFactor(0).setInteractive();
+        this.add.text(btnSize*1.5 + 45, height - btnSize/2 - 25, '►', { fontSize: '32px', fill: '#00f3ff' })
+            .setOrigin(0.5).setScrollFactor(0);
 
-        this.jumpBtn.on('pointerdown', () => this.touchStates.jump = true);
-        this.jumpBtn.on('pointerup', () => this.touchStates.jump = false);
-        this.jumpBtn.on('pointerout', () => this.touchStates.jump = false);
+        // Jump Button
+        const jumpBtn = this.add.rectangle(width - btnSize/2 - 25, height - btnSize/2 - 25, btnSize, btnSize, 0xff00aa, 0.3)
+            .setScrollFactor(0).setInteractive();
+        this.add.text(width - btnSize/2 - 25, height - btnSize/2 - 25, '▲', { fontSize: '32px', fill: '#ff00aa' })
+            .setOrigin(0.5).setScrollFactor(0);
+
+        leftBtn.on('pointerdown', () => this.touchStates.left = true);
+        leftBtn.on('pointerup', () => this.touchStates.left = false);
+        leftBtn.on('pointerout', () => this.touchStates.left = false);
+
+        rightBtn.on('pointerdown', () => this.touchStates.right = true);
+        rightBtn.on('pointerup', () => this.touchStates.right = false);
+        rightBtn.on('pointerout', () => this.touchStates.right = false);
+
+        jumpBtn.on('pointerdown', () => {
+            this.touchStates.jump = true;
+            this.handleJump();
+        });
+        jumpBtn.on('pointerup', () => this.touchStates.jump = false);
+        jumpBtn.on('pointerout', () => this.touchStates.jump = false);
+    }
+
+    handleJump() {
+        const canJump = this.player.body.blocked.down || this.player.body.touching.down;
+        if (canJump) {
+            this.player.setVelocityY(-560);
+            sfx.playJump();
+            this.createJumpParticles(this.player.x, this.player.y + 16);
+        }
+    }
+
+    createJumpParticles(x, y) {
+        for (let i = 0; i < 8; i++) {
+            let spark = this.add.image(x + Phaser.Math.Between(-10, 10), y, 'spark');
+            this.tweens.add({
+                targets: spark,
+                y: y + Phaser.Math.Between(10, 25),
+                x: spark.x + Phaser.Math.Between(-15, 15),
+                alpha: 0,
+                scale: 0.2,
+                duration: 300,
+                onComplete: () => spark.destroy()
+            });
+        }
     }
 
     update() {
-        if (this.player.y > this.scale.height + 50) {
+        // Fall Death Check
+        if (this.player.y > this.scale.height + 80) {
             this.die();
         }
 
         // Horizontal Movement
         if (this.cursors.left.isDown || this.wasd.A.isDown || this.touchStates.left) {
-            this.player.setVelocityX(-200);
+            this.player.setVelocityX(-220);
         } else if (this.cursors.right.isDown || this.wasd.D.isDown || this.touchStates.right) {
-            this.player.setVelocityX(200);
+            this.player.setVelocityX(220);
         } else {
             this.player.setVelocityX(0);
         }
 
-        // Jumping
-        const canJump = this.player.body.blocked.down || this.player.body.touching.down;
-        if ((this.cursors.up.isDown || this.cursors.space.isDown || this.wasd.W.isDown || this.touchStates.jump) && canJump) {
-            this.player.setVelocityY(-550);
-            this.sound.play('jump');
+        // Jump Controls
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.up) || 
+            Phaser.Input.Keyboard.JustDown(this.cursors.space) || 
+            Phaser.Input.Keyboard.JustDown(this.wasd.W)) {
+            this.handleJump();
         }
 
-        // Enemy patrol behavior
+        // Enemy Patrol
         this.enemies.getChildren().forEach(enemy => {
-            if (enemy.body.blocked.left) enemy.setVelocityX(100);
-            if (enemy.body.blocked.right) enemy.setVelocityX(-100);
+            if (enemy.body.blocked.left) enemy.setVelocityX(120);
+            if (enemy.body.blocked.right) enemy.setVelocityX(-120);
         });
     }
 
     collectCoin(player, coin) {
+        // Gold burst particle effect
+        for (let i = 0; i < 6; i++) {
+            let p = this.add.image(coin.x, coin.y, 'gold-spark');
+            this.tweens.add({
+                targets: p,
+                x: p.x + Phaser.Math.Between(-20, 20),
+                y: p.y + Phaser.Math.Between(-20, 20),
+                alpha: 0,
+                scale: 0.1,
+                duration: 400,
+                onComplete: () => p.destroy()
+            });
+        }
+
         coin.disableBody(true, true);
+        sfx.playCoin();
         gameState.score += 10;
         this.scoreText.setText(`SCORE: ${gameState.score}`);
-        this.sound.play('coin');
     }
 
     hitEnemy(player, enemy) {
-        if (player.body.velocity.y > 0 && player.y < enemy.y - 16) {
-            // Stomp
+        if (player.body.velocity.y > 0 && player.y < enemy.y - 14) {
+            // Stomp enemy
             enemy.disableBody(true, true);
-            player.setVelocityY(-300);
+            player.setVelocityY(-320);
+            sfx.playStomp();
             gameState.score += 50;
             this.scoreText.setText(`SCORE: ${gameState.score}`);
-            this.sound.play('jump');
         } else {
             this.die();
         }
     }
 
     die() {
-        this.sound.play('die');
+        sfx.playDie();
         gameState.lives--;
         if (gameState.lives > 0) {
-            this.cameras.main.shake(200, 0.01);
+            this.cameras.main.shake(250, 0.015);
             this.cameras.main.once('camerashakecomplete', () => this.scene.restart());
         } else {
             this.cameras.main.fadeOut(500);
@@ -301,10 +597,10 @@ class PlayScene extends Phaser.Scene {
     }
 
     reachFinish() {
-        this.sound.play('win');
+        sfx.playWin();
         if (gameState.currentLevel < 10) {
             gameState.currentLevel++;
-            this.cameras.main.fade(500);
+            this.cameras.main.fadeOut(400);
             this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart());
         } else {
             this.cameras.main.fadeOut(500);
@@ -322,20 +618,42 @@ class GameOverScene extends Phaser.Scene {
     create() {
         const { width, height } = this.scale;
         
-        // Update highscore
         if (gameState.score > gameState.highscore) {
             gameState.highscore = gameState.score;
-            localStorage.setItem('retro_highscore', gameState.highscore);
+            localStorage.setItem('cyber_highscore', gameState.highscore.toString());
         }
 
-        this.add.image(0, 0, 'gameover-background').setOrigin(0).setDisplaySize(width, height);
-        this.add.text(width / 2, height / 2.5, 'GAME OVER', { fontSize: '64px', fill: '#f00' }).setOrigin(0.5);
-        this.add.text(width / 2, height / 2, `FINAL SCORE: ${gameState.score}`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
-        
-        const restartBtn = this.add.text(width / 2, height / 1.5, 'BACK TO MENU', { fontSize: '32px', fill: '#fff' })
-            .setOrigin(0.5).setInteractive();
-        
-        restartBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x1a0005, 0x1a0005, 0x05000a, 0x05000a, 1);
+        bg.fillRect(0, 0, width, height);
+
+        this.add.text(width / 2, height / 3, 'SYSTEM OVERLOAD', {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '48px',
+            fontStyle: '900',
+            fill: '#ff0055',
+            shadow: { blur: 20, color: '#ff0055', fill: true }
+        }).setOrigin(0.5);
+
+        this.add.text(width / 2, height / 2.2, `FINAL SCORE: ${gameState.score}`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '24px',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+
+        const restartBtn = this.add.text(width / 2, height / 1.5, 'RETRY GRID', {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '28px',
+            fontStyle: '700',
+            fill: '#000000',
+            backgroundColor: '#ff0055',
+            padding: { x: 25, y: 12 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        restartBtn.on('pointerdown', () => {
+            sfx.playJump();
+            this.scene.start('MenuScene');
+        });
     }
 }
 
@@ -348,21 +666,48 @@ class VictoryScene extends Phaser.Scene {
     create() {
         const { width, height } = this.scale;
 
-        // Update highscore
         if (gameState.score > gameState.highscore) {
             gameState.highscore = gameState.score;
-            localStorage.setItem('retro_highscore', gameState.highscore);
+            localStorage.setItem('cyber_highscore', gameState.highscore.toString());
         }
 
-        this.add.image(0, 0, 'victory-background').setOrigin(0).setDisplaySize(width, height);
-        this.add.text(width / 2, height / 3, 'VICTORY!', { fontSize: '72px', fill: '#fff', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5);
-        this.add.text(width / 2, height / 2, `CONGRATULATIONS! YOU BEAT ALL 10 LEVELS!`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
-        this.add.text(width / 2, height / 1.8, `FINAL SCORE: ${gameState.score}`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x001a14, 0x001a14, 0x000a1a, 0x000a1a, 1);
+        bg.fillRect(0, 0, width, height);
 
-        const menuBtn = this.add.text(width / 2, height / 1.4, 'PLAY AGAIN', { fontSize: '32px', fill: '#fff', backgroundColor: '#000', padding: 10 })
-            .setOrigin(0.5).setInteractive();
+        this.add.text(width / 2, height / 3, 'SYSTEM CLEARED!', {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '52px',
+            fontStyle: '900',
+            fill: '#00f3ff',
+            shadow: { blur: 25, color: '#00f3ff', fill: true }
+        }).setOrigin(0.5);
 
-        menuBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+        this.add.text(width / 2, height / 2.2, `ALL 10 SECTORS CONQUERED!`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '20px',
+            fill: '#ff00aa'
+        }).setOrigin(0.5);
+
+        this.add.text(width / 2, height / 1.8, `TOTAL SCORE: ${gameState.score}`, {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '24px',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+
+        const menuBtn = this.add.text(width / 2, height / 1.4, 'MAIN MENU', {
+            fontFamily: "'Orbitron', sans-serif",
+            fontSize: '28px',
+            fontStyle: '700',
+            fill: '#000000',
+            backgroundColor: '#00f3ff',
+            padding: { x: 25, y: 12 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        menuBtn.on('pointerdown', () => {
+            sfx.playJump();
+            this.scene.start('MenuScene');
+        });
     }
 }
 
