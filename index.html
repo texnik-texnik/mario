@@ -1,27 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CYBER DASH // Synthwave Platformer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Super Mario Bros. - Web Edition</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
 </head>
 <body>
-    <div id="game-container">
-        <!-- Touch Overlay for Mobile/Tablet in Portrait & Landscape -->
-        <div id="touch-controls">
-            <div class="dpad">
-                <button id="btn-left" class="touch-btn">◄</button>
-                <button id="btn-right" class="touch-btn">►</button>
+
+<div id="arcadeContainer">
+    <!-- Top HUD Bar -->
+    <header id="topBar">
+        <div class="hud-group">
+            <div class="hud-item">
+                <span class="hud-title">MARIO</span>
+                <span id="hudScore" class="hud-val">000000</span>
             </div>
-            <button id="btn-jump" class="touch-btn jump-btn">▲ JUMP</button>
+            <div class="hud-item">
+                <span class="hud-title">COINS</span>
+                <span id="hudCoins" class="hud-val">x00</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-title">WORLD</span>
+                <span id="hudWorld" class="hud-val">1-1</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-title">TIME</span>
+                <span id="hudTime" class="hud-val">400</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-title">LIVES</span>
+                <span id="hudLives" class="hud-val hud-lives">x3</span>
+            </div>
         </div>
-    </div>
-    <script src="levels.js"></script>
-    <script src="script.js"></script>
+
+        <div class="hud-controls">
+            <button id="btnMute" class="icon-btn" title="Звук (M)">🔊</button>
+            <button id="btnPause" class="icon-btn" title="Пауза (P)">⏸️</button>
+            <button id="btnFullscreen" class="icon-btn" title="Полный экран">⛶</button>
+        </div>
+    </header>
+
+    <!-- Canvas Game Viewport -->
+    <main id="viewport">
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Menu Screen Overlay -->
+        <div id="menuScreen" class="screen-overlay active">
+            <h1 class="game-title">SUPER MARIO<br>WEB EDITION</h1>
+            <div class="menu-info">
+                РЕКОРД: <span id="menuHighScore">000000</span>
+            </div>
+            <button id="btnStart" class="retro-btn">ИГРАТЬ (START)</button>
+            <div class="controls-hint">
+                Управление клавиатурой:<br>
+                [←] [→] / [A] [D] — Движение<br>
+                [Пробел] / [W] / [Z] — Прыжок<br>
+                [Shift] / [X] — Ускорение / Огонь<br>
+                [P] — Пауза | [M] — Звук
+            </div>
+        </div>
+
+        <!-- Pause Screen Overlay -->
+        <div id="pauseScreen" class="screen-overlay">
+            <h2 class="game-title">ПАУЗА</h2>
+            <button id="btnResume" class="retro-btn">ПРОДОЛЖИТЬ</button>
+            <button id="btnRestart" class="retro-btn">ЗАНОВО</button>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameOverScreen" class="screen-overlay">
+            <h2 class="game-title" style="color: #ff3333;">ИГРА ОКОНЧЕНА</h2>
+            <div class="menu-info">
+                ВАШ СЧЕТ: <span id="gameOverScore">000000</span>
+            </div>
+            <button id="btnPlayAgain" class="retro-btn">ИГРАТЬ СНОВА</button>
+        </div>
+
+        <!-- Victory Screen Overlay -->
+        <div id="victoryScreen" class="screen-overlay">
+            <h2 class="game-title" style="color: #fcd828;">ПОБЕДА!</h2>
+            <div class="menu-info">
+                СПАСИБО, МАРИО!<br>
+                ПРИНЦЕССА СПАСЕНА!<br><br>
+                ИТОГОВЫЙ СЧЕТ: <span id="victoryScore">000000</span>
+            </div>
+            <button id="btnRestartVictory" class="retro-btn" onclick="window.game.startNewGame()">ИГРАТЬ ЕЩЕ РАЗ</button>
+        </div>
+    </main>
+
+    <!-- Virtual Mobile Touch Controls -->
+    <footer id="touchControls">
+        <div class="dpad">
+            <button id="btnLeft" class="dpad-btn" aria-label="Left">◀</button>
+            <button id="btnDown" class="dpad-btn" aria-label="Crouch">▼</button>
+            <button id="btnRight" class="dpad-btn" aria-label="Right">▶</button>
+        </div>
+        <div class="action-buttons">
+            <button id="btnRun" class="act-btn btn-b" aria-label="Run / Fire">B</button>
+            <button id="btnJump" class="act-btn btn-a" aria-label="Jump">A</button>
+        </div>
+    </footer>
+</div>
+
+<!-- Scripts -->
+<script src="js/audio.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/game.js"></script>
+
 </body>
 </html>
