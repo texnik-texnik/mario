@@ -1,15 +1,14 @@
-/* Super Mario Web - Retro NES Arcade Stylesheet */
+/* Super Mario 3D - Mobile & Web Edition Stylesheet */
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 :root {
-    --nes-black: #000000;
-    --nes-white: #ffffff;
-    --nes-red: #d82800;
-    --nes-blue: #0000bc;
-    --nes-gold: #fcd828;
-    --nes-sky: #5c94fc;
-    --nes-dark: #121216;
+    --mario-red: #d82800;
+    --mario-blue: #0078d7;
+    --mario-green: #22b14c;
+    --mario-gold: #fcd828;
+    --mario-dark: #101018;
+    --mario-hud-bg: rgba(10, 10, 18, 0.88);
 }
 
 * {
@@ -25,48 +24,44 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: var(--nes-dark);
+    background-color: var(--mario-dark);
     font-family: 'Press Start 2P', monospace, sans-serif;
-    color: var(--nes-white);
+    color: #ffffff;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     touch-action: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Arcade Cabinet Outer Shell */
+/* Fullscreen / Responsive Container */
 #arcadeContainer {
     position: relative;
     width: 100%;
-    max-width: 900px;
     height: 100%;
-    max-height: 640px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
     background: #000000;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
-    border-radius: 8px;
     overflow: hidden;
 }
 
-/* Retro Top Bar & HUD */
+/* Top HUD Bar */
 #topBar {
     width: 100%;
-    padding: 8px 16px;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 16px 8px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #000000;
-    border-bottom: 2px solid #222;
-    z-index: 10;
+    background: var(--mario-hud-bg);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+    z-index: 100;
+    backdrop-filter: blur(6px);
 }
 
 .hud-group {
     display: flex;
-    gap: 20px;
+    gap: 16px;
     font-size: 11px;
     text-shadow: 2px 2px #000;
 }
@@ -75,230 +70,406 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
 }
 
 .hud-title {
-    color: var(--nes-white);
-    font-size: 10px;
+    color: #ffffff;
+    font-size: 9px;
+    letter-spacing: 0.5px;
 }
 
 .hud-val {
-    color: var(--nes-gold);
-    font-size: 12px;
+    color: var(--mario-gold);
+    font-size: 11px;
 }
 
 .hud-lives {
-    color: var(--nes-red);
+    color: #ff4757;
 }
 
+/* Bowser Boss Health Bar */
+#bossHealthContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #ff4757;
+}
+
+.boss-label {
+    font-size: 9px;
+    color: #ff4757;
+    text-shadow: 1px 1px #000;
+}
+
+.boss-bar-bg {
+    width: 100px;
+    height: 12px;
+    background: #331111;
+    border: 1px solid #ff4757;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.boss-bar-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff4757, #ffa502);
+    transition: width 0.25s ease;
+}
+
+/* HUD Controls */
 .hud-controls {
     display: flex;
-    gap: 10px;
+    gap: 8px;
 }
 
 .icon-btn {
-    background: #222;
-    border: 2px solid #555;
-    color: #fff;
-    font-size: 14px;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    font-size: 15px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s;
+    transition: all 0.15s ease;
 }
 
 .icon-btn:active {
-    background: #444;
-    transform: translateY(2px);
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0.92);
 }
 
-/* Canvas Display Area */
+/* 3D Viewport Area */
 #viewport {
     position: relative;
     flex: 1;
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 100%;
     background: #000000;
     overflow: hidden;
 }
 
-#gameCanvas {
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
+#webglCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    outline: none;
+    touch-action: none;
 }
 
-/* Screen Overlays (Menu, Game Over, Pause, Victory) */
+/* Virtual Floating Joystick */
+.joystick-zone {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.05) 70%, rgba(255, 255, 255, 0.25) 100%);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+    display: none;
+    pointer-events: none;
+    z-index: 50;
+    transform: translate(0, 0);
+}
+
+.joystick-thumb {
+    position: absolute;
+    top: 35px;
+    left: 35px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
+    border: 2px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    will-change: transform;
+}
+
+/* Bottom Virtual Touch Controls */
+#touchControls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 20px calc(15px + env(safe-area-inset-bottom, 0px)) 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    z-index: 60;
+}
+
+.joystick-hint {
+    pointer-events: none;
+    opacity: 0.65;
+}
+
+.dpad-indicator {
+    font-size: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    letter-spacing: 0.5px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 16px;
+    pointer-events: auto;
+    align-items: flex-end;
+}
+
+/* Large Arcade Action Buttons */
+.act-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    font-family: 'Press Start 2P', monospace, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    touch-action: none;
+    transition: transform 0.08s ease, filter 0.08s ease;
+}
+
+.act-btn:active, .act-btn.pressed {
+    transform: scale(0.9) translateY(4px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.2);
+    filter: brightness(1.2);
+}
+
+/* Button Colors */
+.btn-a {
+    background: radial-gradient(circle at 35% 35%, #2ed573, #1e824c);
+    width: 72px;
+    height: 72px;
+}
+
+.btn-b {
+    background: radial-gradient(circle at 35% 35%, #1e90ff, #094ca1);
+}
+
+.btn-c {
+    background: radial-gradient(circle at 35% 35%, #ffa502, #b86200);
+    width: 56px;
+    height: 56px;
+    font-size: 15px;
+}
+
+/* Screen Overlays (Menu, Pause, Victory, GameOver) */
 .screen-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.88);
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(8px);
     display: none;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 20;
-    padding: 20px;
-    text-align: center;
+    z-index: 120;
+    padding: 16px;
+    overflow-y: auto;
 }
 
 .screen-overlay.active {
     display: flex;
 }
 
+.menu-content {
+    max-width: 580px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    padding: 24px;
+    background: rgba(18, 18, 28, 0.95);
+    border: 3px solid var(--mario-gold);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9);
+}
+
 .game-title {
-    font-size: 24px;
-    color: var(--nes-red);
-    text-shadow: 3px 3px 0 var(--nes-gold), 6px 6px 0 #000;
-    margin-bottom: 24px;
-    line-height: 1.4;
-    letter-spacing: 2px;
+    font-size: 20px;
+    color: var(--mario-red);
+    text-shadow: 3px 3px #000, -1px -1px #fff;
+    line-height: 1.5;
+}
+
+.subtitle {
+    font-size: 11px;
+    color: var(--mario-gold);
+    display: block;
+    margin-top: 4px;
+}
+
+.menu-badge {
+    font-size: 9px;
+    background: #0078d7;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 16px;
+    letter-spacing: 1px;
 }
 
 .menu-info {
-    font-size: 11px;
+    font-size: 12px;
+    color: #f1f2f6;
     line-height: 1.8;
-    color: #cccccc;
-    margin-bottom: 24px;
 }
 
 .retro-btn {
-    font-family: inherit;
+    font-family: 'Press Start 2P', monospace, sans-serif;
     font-size: 13px;
-    padding: 12px 24px;
-    color: #fff;
-    background: var(--nes-red);
-    border: 3px solid var(--nes-gold);
-    border-radius: 4px;
+    background: var(--mario-gold);
+    color: #000000;
+    border: 3px solid #ffffff;
+    padding: 14px 28px;
+    border-radius: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 0 #881a00;
-    text-shadow: 1px 1px #000;
+    box-shadow: 0 6px #8c6a00;
     transition: all 0.1s ease;
-    margin-top: 10px;
 }
 
 .retro-btn:active {
     transform: translateY(4px);
-    box-shadow: 0 0 0 #881a00;
+    box-shadow: 0 2px #8c6a00;
+}
+
+.start-pulse {
+    animation: pulseBtn 1.5s infinite;
+}
+
+@keyframes pulseBtn {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Level Select */
+.level-select-box {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.level-select-title {
+    font-size: 9px;
+    color: #a4b0be;
+}
+
+.level-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.lvl-select-btn {
+    font-family: 'Press Start 2P', monospace, sans-serif;
+    font-size: 9px;
+    background: #2f3542;
+    color: #ffffff;
+    border: 2px solid #57606f;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.lvl-select-btn:active {
+    background: var(--mario-blue);
+    border-color: #ffffff;
 }
 
 .controls-hint {
-    margin-top: 20px;
-    font-size: 9px;
-    color: #888;
-    line-height: 1.6;
-}
-
-/* Virtual Mobile Touch Controls Overlay */
-#touchControls {
+    margin-top: 10px;
+    font-size: 8px;
+    color: #ced6e0;
+    line-height: 1.7;
+    text-align: left;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px 14px;
-    background: #08080a;
-    border-top: 2px solid #222;
-    z-index: 15;
-    user-select: none;
-    touch-action: none;
 }
 
-/* D-Pad Buttons */
-.dpad {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.dpad-btn {
-    width: 54px;
-    height: 54px;
-    background: #252528;
-    border: 3px solid #444;
-    border-radius: 10px;
-    color: #fff;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #111;
-}
-
-.dpad-btn:active, .dpad-btn.active {
-    background: #444;
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 #111;
-}
-
-/* Action Buttons (A / B) */
-.action-buttons {
-    display: flex;
-    gap: 14px;
-    align-items: center;
-}
-
-.act-btn {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    border: 3px solid #ffffff;
-    font-family: inherit;
-    font-size: 16px;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #111;
-}
-
-.btn-b {
-    background: var(--nes-red);
-    box-shadow: 0 4px 0 #881a00;
-}
-
-.btn-b:active, .btn-b.active {
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 #881a00;
-}
-
-.btn-a {
-    background: #00a800;
-    box-shadow: 0 4px 0 #005500;
-}
-
-.btn-a:active, .btn-a.active {
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 #005500;
-}
-
-/* Media queries for desktop vs mobile */
-@media (min-width: 800px) {
-    #touchControls {
-        padding: 6px 20px;
+/* Mobile Small Screen Adaptations */
+@media (max-width: 600px) {
+    #topBar {
+        padding: calc(4px + env(safe-area-inset-top, 0px)) 8px 6px 8px;
     }
-    .dpad-btn {
+
+    .hud-group {
+        gap: 8px;
+        font-size: 9px;
+    }
+
+    .hud-title {
+        font-size: 7px;
+    }
+
+    .hud-val {
+        font-size: 9px;
+    }
+
+    .icon-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+    }
+
+    .act-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 15px;
+    }
+
+    .btn-a {
+        width: 64px;
+        height: 64px;
+    }
+
+    .btn-c {
         width: 48px;
         height: 48px;
+        font-size: 13px;
     }
-    .act-btn {
-        width: 50px;
-        height: 50px;
+
+    .game-title {
+        font-size: 15px;
+    }
+
+    .menu-content {
+        padding: 16px 12px;
+        gap: 12px;
+    }
+
+    .retro-btn {
+        font-size: 11px;
+        padding: 10px 18px;
     }
 }

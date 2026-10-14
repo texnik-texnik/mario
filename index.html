@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Super Mario Bros. - Web Edition</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#5c94fc">
+    <title>Super Mario 3D - Mobile & Web Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -34,81 +37,125 @@
             </div>
         </div>
 
+        <!-- Boss Health Bar (World 1-3) -->
+        <div id="bossHealthContainer" style="display: none;">
+            <span class="boss-label">BOWSER:</span>
+            <div class="boss-bar-bg">
+                <div id="bossHealthFill" class="boss-bar-fill"></div>
+            </div>
+        </div>
+
         <div class="hud-controls">
+            <button id="btnCenterCam" class="icon-btn" title="Сброс камеры (C)">🎥</button>
             <button id="btnMute" class="icon-btn" title="Звук (M)">🔊</button>
             <button id="btnPause" class="icon-btn" title="Пауза (P)">⏸️</button>
             <button id="btnFullscreen" class="icon-btn" title="Полный экран">⛶</button>
         </div>
     </header>
 
-    <!-- Canvas Game Viewport -->
+    <!-- 3D Game Viewport -->
     <main id="viewport">
-        <canvas id="gameCanvas"></canvas>
+        <!-- Three.js Canvas injected dynamically here -->
+
+        <!-- Virtual Floating Joystick Overlay -->
+        <div id="joystickZone" class="joystick-zone">
+            <div id="joystickThumb" class="joystick-thumb"></div>
+        </div>
 
         <!-- Menu Screen Overlay -->
         <div id="menuScreen" class="screen-overlay active">
-            <h1 class="game-title">SUPER MARIO<br>WEB EDITION</h1>
-            <div class="menu-info">
-                РЕКОРД: <span id="menuHighScore">000000</span>
-            </div>
-            <button id="btnStart" class="retro-btn">ИГРАТЬ (START)</button>
-            <div class="controls-hint">
-                Управление клавиатурой:<br>
-                [←] [→] / [A] [D] — Движение<br>
-                [Пробел] / [W] / [Z] — Прыжок<br>
-                [Shift] / [X] — Ускорение / Огонь<br>
-                [P] — Пауза | [M] — Звук
+            <div class="menu-content">
+                <h1 class="game-title">SUPER MARIO 3D<br><span class="subtitle">MOBILE & WEB EDITION</span></h1>
+                <div class="menu-badge">🌟 3D WEBGL GRAPHICS 🌟</div>
+                <div class="menu-info">
+                    РЕКОРД: <span id="menuHighScore">000000</span>
+                </div>
+                <button id="btnStart" class="retro-btn start-pulse">ИГРАТЬ (START)</button>
+
+                <!-- Level Select -->
+                <div class="level-select-box">
+                    <span class="level-select-title">ВЫБОР УРОВНЯ:</span>
+                    <div class="level-buttons">
+                        <button class="lvl-select-btn" data-world="0">1-1 ХОЛМЫ</button>
+                        <button class="lvl-select-btn" data-world="1">1-2 НЕБЕСА</button>
+                        <button class="lvl-select-btn" data-world="2">1-3 ЗАМОК</button>
+                    </div>
+                </div>
+
+                <div class="controls-hint">
+                    📱 <strong>Управление на смартфоне:</strong><br>
+                    • <strong>Левый палец</strong>: Виртуальный джойстик (движение 360°)<br>
+                    • <strong>Правый палец</strong>: Свайп по экрану вращает 3D камеру<br>
+                    • <strong>Кнопка [A]</strong>: Прыжок | <strong>[B]</strong>: Бег / Фаербол<br>
+                    • <strong>Кнопка [▼]</strong>: Присесть / Ground Pound (удар о землю в воздухе)<br><br>
+                    ⌨️ <strong>На клавиатуре:</strong> [WASD] / Стрелки — движение, [Пробел] — прыжок, [Shift] — бег, [C] — присед
+                </div>
             </div>
         </div>
 
         <!-- Pause Screen Overlay -->
         <div id="pauseScreen" class="screen-overlay">
-            <h2 class="game-title">ПАУЗА</h2>
-            <button id="btnResume" class="retro-btn">ПРОДОЛЖИТЬ</button>
-            <button id="btnRestart" class="retro-btn">ЗАНОВО</button>
+            <div class="menu-content">
+                <h2 class="game-title">ПАУЗА</h2>
+                <button id="btnResume" class="retro-btn">ПРОДОЛЖИТЬ</button>
+                <button id="btnRestart" class="retro-btn">ЗАНОВО</button>
+                <div class="level-buttons" style="margin-top: 15px;">
+                    <button class="lvl-select-btn" data-world="0">1-1</button>
+                    <button class="lvl-select-btn" data-world="1">1-2</button>
+                    <button class="lvl-select-btn" data-world="2">1-3</button>
+                </div>
+            </div>
         </div>
 
         <!-- Game Over Overlay -->
         <div id="gameOverScreen" class="screen-overlay">
-            <h2 class="game-title" style="color: #ff3333;">ИГРА ОКОНЧЕНА</h2>
-            <div class="menu-info">
-                ВАШ СЧЕТ: <span id="gameOverScore">000000</span>
+            <div class="menu-content">
+                <h2 class="game-title" style="color: #ff3333;">ИГРА ОКОНЧЕНА</h2>
+                <div class="menu-info">
+                    ВАШ СЧЕТ: <span id="gameOverScore">000000</span>
+                </div>
+                <button id="btnPlayAgain" class="retro-btn">ИГРАТЬ СНОВА</button>
             </div>
-            <button id="btnPlayAgain" class="retro-btn">ИГРАТЬ СНОВА</button>
         </div>
 
         <!-- Victory Screen Overlay -->
         <div id="victoryScreen" class="screen-overlay">
-            <h2 class="game-title" style="color: #fcd828;">ПОБЕДА!</h2>
-            <div class="menu-info">
-                СПАСИБО, МАРИО!<br>
-                ПРИНЦЕССА СПАСЕНА!<br><br>
-                ИТОГОВЫЙ СЧЕТ: <span id="victoryScore">000000</span>
+            <div class="menu-content">
+                <h2 class="game-title" style="color: #fcd828;">ПОБЕДА! 🎉</h2>
+                <div class="menu-info">
+                    СПАСИБО, МАРИО!<br>
+                    БОУЗЕР ПОВЕРЖЕН!<br>
+                    ПРИНЦЕССА ПИЧ СПАСЕНА!<br><br>
+                    ИТОГОВЫЙ СЧЕТ: <span id="victoryScore">000000</span>
+                </div>
+                <button id="btnRestartVictory" class="retro-btn">ИГРАТЬ ЕЩЕ РАЗ</button>
             </div>
-            <button id="btnRestartVictory" class="retro-btn" onclick="window.game.startNewGame()">ИГРАТЬ ЕЩЕ РАЗ</button>
         </div>
     </main>
 
-    <!-- Virtual Mobile Touch Controls -->
+    <!-- Mobile Virtual Action Touch Controls -->
     <footer id="touchControls">
-        <div class="dpad">
-            <button id="btnLeft" class="dpad-btn" aria-label="Left">◀</button>
-            <button id="btnDown" class="dpad-btn" aria-label="Crouch">▼</button>
-            <button id="btnRight" class="dpad-btn" aria-label="Right">▶</button>
+        <!-- Floating joystick hint on left -->
+        <div class="joystick-hint">
+            <div class="dpad-indicator">🕹️ ДЖОЙСТИК</div>
         </div>
+
+        <!-- Right Side Arcade Action Buttons -->
         <div class="action-buttons">
+            <button id="btnCrouch" class="act-btn btn-c" aria-label="Crouch / Ground Pound">▼</button>
             <button id="btnRun" class="act-btn btn-b" aria-label="Run / Fire">B</button>
             <button id="btnJump" class="act-btn btn-a" aria-label="Jump">A</button>
         </div>
     </footer>
 </div>
 
-<!-- Scripts -->
+<!-- Scripts: Three.js 3D Engine + Mario 3D modules -->
+<script src="js/three.min.js"></script>
 <script src="js/audio.js"></script>
-<script src="js/sprites.js"></script>
-<script src="js/entities.js"></script>
-<script src="js/levels.js"></script>
-<script src="js/game.js"></script>
+<script src="js/mario3d.js"></script>
+<script src="js/world3d.js"></script>
+<script src="js/levels3d.js"></script>
+<script src="js/game3d.js"></script>
 
 </body>
 </html>
