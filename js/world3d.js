@@ -693,14 +693,17 @@ class Goomba3D {
         this.isSquashed = true;
         this.group.scale.set(1.3, 0.2, 1.3); // Flat pancake
         this.group.position.y += 0.05;
-        window.audio.stomp();
+        this.box.setFromCenterAndSize(new THREE.Vector3(0, -9999, 0), new THREE.Vector3(0, 0, 0));
+        try { window.audio.stomp(); } catch (e) {}
     }
 
     defeatByShellOrFire() {
         this.isAlive = false;
         this.vy = 8.0;
         this.vx = (Math.random() - 0.5) * 4;
-        window.audio.kick();
+        this.group.rotation.x = Math.PI;
+        this.box.setFromCenterAndSize(new THREE.Vector3(0, -9999, 0), new THREE.Vector3(0, 0, 0));
+        try { window.audio.kick(); } catch (e) {}
     }
 
     update(dt, colliders) {
@@ -718,6 +721,9 @@ class Goomba3D {
             this.group.position.x += this.vx * dt;
             this.group.position.y += this.vy * dt;
             this.group.rotation.x += dt * 10;
+            if (this.group.position.y < -15) {
+                this.group.visible = false;
+            }
             return;
         }
 
@@ -746,7 +752,7 @@ class Koopa3D {
         this.patrolDistance = patrolDistance;
         this.vx = -1.8;
         this.vy = 0;
-        this.state = 'walk'; // 'walk', 'shell', 'sliding'
+        this.state = 'walk'; // 'walk', 'shell', 'sliding', 'defeated'
         this.isAlive = true;
 
         this.group = new THREE.Group();
@@ -825,7 +831,7 @@ class Koopa3D {
             this.leftBoot.visible = false;
             this.rightBoot.visible = false;
             this.shell.position.y = 0.35;
-            window.audio.stomp();
+            try { window.audio.stomp(); } catch (e) {}
         } else if (this.state === 'shell') {
             // Kick shell
             this.kick(this.group.position.x > marioX ? 1 : -1);
@@ -833,18 +839,38 @@ class Koopa3D {
             // Stop shell
             this.state = 'shell';
             this.vx = 0;
-            window.audio.stomp();
+            try { window.audio.stomp(); } catch (e) {}
         }
     }
 
     kick(dir) {
         this.state = 'sliding';
         this.vx = dir * 11.0;
-        window.audio.kick();
+        try { window.audio.kick(); } catch (e) {}
+    }
+
+    defeatByShellOrFire() {
+        this.isAlive = false;
+        this.state = 'defeated';
+        this.vy = 8.0;
+        this.vx = (Math.random() - 0.5) * 4;
+        this.headGroup.visible = false;
+        this.group.rotation.x = Math.PI; // Flip shell upside down!
+        this.box.setFromCenterAndSize(new THREE.Vector3(0, -9999, 0), new THREE.Vector3(0, 0, 0));
+        try { window.audio.kick(); } catch (e) {}
     }
 
     update(dt, colliders) {
-        if (!this.isAlive) return;
+        if (!this.isAlive) {
+            this.vy -= 26 * dt;
+            this.group.position.x += this.vx * dt;
+            this.group.position.y += this.vy * dt;
+            this.group.rotation.z += dt * 10;
+            if (this.group.position.y < -15) {
+                this.group.visible = false;
+            }
+            return;
+        }
 
         if (this.state === 'walk') {
             this.group.position.x += this.vx * dt;
@@ -862,7 +888,7 @@ class Koopa3D {
                 if (col.box && this.box.intersectsBox(col.box)) {
                     if (Math.abs(this.group.position.x - col.box.getCenter(new THREE.Vector3()).x) > 0.5) {
                         this.vx = -this.vx;
-                        window.audio.bump();
+                        try { window.audio.bump(); } catch (e) {}
                         break;
                     }
                 }
@@ -882,6 +908,7 @@ class PiranhaPlant3D {
         this.group = new THREE.Group();
         this.group.position.set(x, y, z);
         this.time = 0;
+        this.isAlive = true;
 
         // Head (Red sphere with open white jaws and spots)
         this.headGroup = new THREE.Group();
@@ -919,7 +946,15 @@ class PiranhaPlant3D {
         );
     }
 
+    defeatByShellOrFire() {
+        this.isAlive = false;
+        this.group.visible = false;
+        this.box.setFromCenterAndSize(new THREE.Vector3(0, -9999, 0), new THREE.Vector3(0, 0, 0));
+        try { window.audio.kick(); } catch (e) {}
+    }
+
     update(dt) {
+        if (!this.isAlive) return;
         this.time += dt * 1.8;
         // Rhythmically pops up and lowers back down
         const offset = Math.sin(this.time);
@@ -1026,12 +1061,16 @@ class Bowser3D {
         );
     }
 
+    defeatByShellOrFire() {
+        this.takeDamage();
+    }
+
     takeDamage() {
         this.health--;
-        window.audio.bossHurt();
+        try { window.audio.bossHurt(); } catch (e) {}
         if (this.health <= 0) {
             this.isAlive = false;
-            window.audio.bossFall();
+            try { window.audio.bossFall(); } catch (e) {}
         }
     }
 

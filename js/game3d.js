@@ -266,7 +266,8 @@ class Game3D {
         let moveZ = 0;
 
         // Combine Keyboard + Touch Joystick
-        const inputX = this.input.turn + this.touchJoystick.vectorX;
+        // Invert X so joystick right moves right on screen, joystick left moves left on screen
+        const inputX = -(this.input.turn + this.touchJoystick.vectorX);
         const inputZ = this.input.forward + this.touchJoystick.vectorY;
 
         if (Math.abs(inputX) > 0.1 || Math.abs(inputZ) > 0.1) {
@@ -604,11 +605,19 @@ class Game3D {
 
             // Star Mario destroys everything on contact!
             if (this.mario.starTimer > 0) {
-                if (enemy instanceof Bowser3D) {
-                    enemy.takeDamage();
-                } else {
-                    enemy.defeatByShellOrFire();
-                    this.addScore(200);
+                try {
+                    if (enemy instanceof Bowser3D) {
+                        enemy.takeDamage();
+                    } else if (typeof enemy.defeatByShellOrFire === 'function') {
+                        enemy.defeatByShellOrFire();
+                        this.addScore(200);
+                    } else {
+                        enemy.isAlive = false;
+                        enemy.group.visible = false;
+                        this.addScore(200);
+                    }
+                } catch (err) {
+                    console.error('Star hit error:', err);
                 }
                 continue;
             }
@@ -657,15 +666,26 @@ class Game3D {
             } else {
                 // Mario's fireball hitting enemies
                 for (const en of this.level.enemies) {
-                    if (en.isAlive && en.box.intersectsBox(fb.box)) {
+                    if (en.isAlive && en.box && en.box.intersectsBox(fb.box)) {
                         fb.alive = false;
-                        if (en instanceof Bowser3D) {
-                            en.takeDamage();
-                        } else {
-                            en.defeatByShellOrFire();
-                            this.addScore(200);
+                        fb.box.setFromCenterAndSize(new THREE.Vector3(0, -9999, 0), new THREE.Vector3(0, 0, 0));
+                        try {
+                            if (en instanceof Bowser3D) {
+                                en.takeDamage();
+                            } else if (typeof en.defeatByShellOrFire === 'function') {
+                                en.defeatByShellOrFire();
+                                this.addScore(200);
+                            } else {
+                                en.isAlive = false;
+                                en.group.visible = false;
+                                this.addScore(200);
+                            }
+                        } catch (err) {
+                            console.error('Fireball hit error:', err);
                         }
-                        this.particles.createDust(fb.group.position.x, fb.group.position.y, fb.group.position.z, 3);
+                        try {
+                            this.particles.createDust(fb.group.position.x, fb.group.position.y, fb.group.position.z, 4);
+                        } catch (e) {}
                         break;
                     }
                 }
