@@ -203,9 +203,22 @@ class Game3D {
         this.scene.background = new THREE.Color(this.level.skyColor);
         this.scene.fog.color = new THREE.Color(this.level.fogColor);
 
-        // Reset player
-        this.playerPos.copy(this.level.spawnPoint);
+        // Reset player safely on top of spawn platform
+        let spawnY = this.level.spawnPoint.y;
+        let foundPlatform = false;
+        for (const col of this.level.colliders) {
+            if (col.box &&
+                this.level.spawnPoint.x >= col.box.min.x - 0.4 && this.level.spawnPoint.x <= col.box.max.x + 0.4 &&
+                this.level.spawnPoint.z >= col.box.min.z - 0.4 && this.level.spawnPoint.z <= col.box.max.z + 0.4) {
+                if (col.box.max.y > spawnY || !foundPlatform) {
+                    spawnY = col.box.max.y;
+                    foundPlatform = true;
+                }
+            }
+        }
+        this.playerPos.set(this.level.spawnPoint.x, spawnY, this.level.spawnPoint.z);
         this.playerVel.set(0, 0, 0);
+        this.isGrounded = true;
         this.playerRotation = 0;
         this.camYaw = 0;
         this.camPitch = 0.38;
@@ -321,13 +334,145 @@ class Game3D {
         // Update positions with sub-stepping for precision collisions
         const substeps = 2;
         const subDt = dt / substeps;
+        const mHeight = (this.mario.form === 'small') ? 1.3 : 1.7;
+        const mRadius = 0.35;
+
         for (let s = 0; s < substeps; s++) {
+            // --- 1. Horizontal Movement (X & Z) ---
             this.playerPos.x += this.playerVel.x * subDt;
-            this.checkHorizontalCollisions('x');
             this.playerPos.z += this.playerVel.z * subDt;
-            this.checkHorizontalCollisions('z');
+
+            const feetY = this.playerPos.y;
+            const headY = feetY + mHeight;
+
+            for (const col of this.level.colliders) {
+                if (!col.box) continue;
+
+                // An obstacle is only a vertical WALL if Mario is beside it,
+                // NOT when Mario is standing on top of it or above it!
+                if (feetY >= col.box.max.y - 0.2) continue;
+                if (headY <= col.box.min.y + 0.1) continue;
+
+                // Check horizontal overlap between Mario's cylinder/box and collider
+                const minX = col.box.min.x - mRadius;
+                const maxX = col.box.max.x + mRadius;
+                const minZ = col.box.min.z - mRadius;
+                const maxZ = col.box.max.z + mRadius;
+
+                if (this.playerPos.x > minX && this.playerPos.x < maxX &&
+                    this.playerPos.z > minZ && this.playerPos.z < maxZ) {
+                    const pushLeft = this.playerPos.x - minX;
+                    const pushRight = maxX - this.playerPos.x;
+                    const pushBack = this.playerPos.z - minZ;
+                    const pushFront = maxZ - this.playerPos.z;
+
+                    const minPushX = Math.min(pushLeft, pushRight);
+                    const minPushZ = Math.min(pushBack, pushFront);
+
+                    if (minPushX < minPushZ) {
+                        this.playerPos.x = (pushLeft < pushRight) ? minX : maxX;
+                        this.playerVel.x = 0;
+                    } else {
+                        this.playerPos.z = (pushBack < pushFront) ? minZ : maxZ;
+                        this.playerVel.z = 0;
+                    }
+                }
+            }
+
+            // --- 2. Vertical Movement (Y) ---
+            const prevY = this.playerPos.y;
             this.playerPos.y += this.playerVel.y * subDt;
-            this.checkVerticalCollisions();
+            const currY = this.playerPos.y;
+
+            this.isGrounded = false;
+            this.standingPlatform = null;
+            let highestFloor = -99999;
+            let bestPlatform = null;
+
+            for (const col of this.level.colliders) {
+                if (!col.box) continue;
+
+                const footMargin = 0.25;
+                const hOverlap = (
+                    this.playerPos.x + footMargin > col.box.min.x &&
+                    this.playerPos.x - footMargin < col.box.max.x &&
+                    this.playerPos.z + footMargin > col.box.min.z &&
+                    this.playerPos.z - footMargin < col.box.max.z
+                );
+                if (!hOverlap) continue;
+
+                const topY = col.box.max.y;
+                const bottomY = col.box.min.y;
+
+                // Case A: Landing on top of platform (Floor)
+                if (this.playerVel.y <= 0) {
+                    const wasAbove = (prevY >= topY - 0.35);
+                    const isAtOrBelowTop = (currY <= topY + 0.1);
+                    const isAboveBottom = (currY >= bottomY - 0.4);
+
+                    if (wasAbove && isAtOrBelowTop && isAboveBottom) {
+                        if (topY > highestFloor) {
+                            highestFloor = topY;
+                            bestPlatform = col;
+                        }
+                    }
+                }
+
+                // Case B: Hitting ceiling / block from below
+                if (this.playerVel.y > 0) {
+                    const wasBelow = (prevY + mHeight <= bottomY + 0.25);
+                    const isAtOrAboveBottom = (currY + mHeight >= bottomY);
+                    const isBelowTop = (currY < topY);
+
+                    if (wasBelow && isAtOrAboveBottom && isBelowTop) {
+                        this.playerPos.y = bottomY - mHeight;
+                        this.playerVel.y = 0;
+
+                        if (col instanceof QuestionBlock3D || col instanceof BrickBlock3D) {
+                            this.triggerBlockHit(col, false);
+                        }
+                    }
+                }
+            }
+
+            // If landing on floor detected:
+            if (bestPlatform !== null) {
+                this.playerPos.y = highestFloor;
+                this.playerVel.y = 0;
+                this.isGrounded = true;
+                this.standingPlatform = bestPlatform;
+
+                // Ground Pound impact
+                if (this.isGroundPounding) {
+                    this.isGroundPounding = false;
+                    this.mario.animState = 'idle';
+                    this.particles.createDust(this.playerPos.x, this.playerPos.y, this.playerPos.z, 8);
+                    window.audio.stomp();
+                    if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+
+                    if (bestPlatform instanceof QuestionBlock3D || bestPlatform instanceof BrickBlock3D) {
+                        this.triggerBlockHit(bestPlatform, true);
+                    }
+                }
+            } else if (this.playerVel.y <= 0) {
+                // Safety catch: snap if slightly inside platform top
+                for (const col of this.level.colliders) {
+                    if (!col.box) continue;
+                    const footMargin = 0.25;
+                    if (this.playerPos.x + footMargin > col.box.min.x &&
+                        this.playerPos.x - footMargin < col.box.max.x &&
+                        this.playerPos.z + footMargin > col.box.min.z &&
+                        this.playerPos.z - footMargin < col.box.max.z) {
+                        if (this.playerPos.y >= col.box.max.y - 0.4 && this.playerPos.y <= col.box.max.y + 0.15) {
+                            this.playerPos.y = col.box.max.y;
+                            this.playerVel.y = 0;
+                            this.isGrounded = true;
+                            this.standingPlatform = col;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // Sync 3D Mario Mesh
@@ -343,78 +488,6 @@ class Game3D {
         // Pit Fall Check (Below Y = -10)
         if (this.playerPos.y < -10) {
             this.playerDie();
-        }
-    }
-
-    // Horizontal Wall Collisions
-    checkHorizontalCollisions(axis) {
-        const marioBox = this.getMarioBox();
-        for (const col of this.level.colliders) {
-            if (col.box && marioBox.intersectsBox(col.box)) {
-                if (axis === 'x') {
-                    if (this.playerVel.x > 0) {
-                        this.playerPos.x = col.box.min.x - 0.45;
-                    } else if (this.playerVel.x < 0) {
-                        this.playerPos.x = col.box.max.x + 0.45;
-                    }
-                    this.playerVel.x = 0;
-                } else if (axis === 'z') {
-                    if (this.playerVel.z > 0) {
-                        this.playerPos.z = col.box.min.z - 0.45;
-                    } else if (this.playerVel.z < 0) {
-                        this.playerPos.z = col.box.max.z + 0.45;
-                    }
-                    this.playerVel.z = 0;
-                }
-                marioBox.setFromCenterAndSize(this.playerPos, new THREE.Vector3(0.9, 1.4, 0.9));
-            }
-        }
-    }
-
-    // Vertical Collisions (Landing & Block Hitting)
-    checkVerticalCollisions() {
-        const marioBox = this.getMarioBox();
-        this.isGrounded = false;
-        this.standingPlatform = null;
-
-        for (const col of this.level.colliders) {
-            if (!col.box || !marioBox.intersectsBox(col.box)) continue;
-
-            // Falling onto top of platform/block
-            if (this.playerVel.y <= 0 && this.playerPos.y >= col.box.max.y - 0.5) {
-                this.playerPos.y = col.box.max.y;
-                this.playerVel.y = 0;
-                this.isGrounded = true;
-                this.standingPlatform = col;
-
-                // Land from Ground Pound!
-                if (this.isGroundPounding) {
-                    this.isGroundPounding = false;
-                    this.mario.animState = 'idle';
-                    this.particles.createDust(this.playerPos.x, this.playerPos.y, this.playerPos.z, 8);
-                    window.audio.stomp();
-                    if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
-
-                    // If landed on brick or question block from above, hit it!
-                    if (col instanceof QuestionBlock3D || col instanceof BrickBlock3D) {
-                        this.triggerBlockHit(col, true);
-                    }
-                }
-                marioBox.setFromCenterAndSize(this.playerPos, new THREE.Vector3(0.9, 1.4, 0.9));
-                break;
-            }
-            // Hitting block from beneath with Mario's head!
-            else if (this.playerVel.y > 0 && this.playerPos.y < col.box.min.y) {
-                this.playerPos.y = col.box.min.y - (this.mario.form === 'small' ? 1.4 : 1.8);
-                this.playerVel.y = 0;
-
-                // Hit block from below!
-                if (col instanceof QuestionBlock3D || col instanceof BrickBlock3D) {
-                    this.triggerBlockHit(col, false);
-                }
-                marioBox.setFromCenterAndSize(this.playerPos, new THREE.Vector3(0.9, 1.4, 0.9));
-                break;
-            }
         }
     }
 

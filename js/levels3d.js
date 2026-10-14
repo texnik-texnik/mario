@@ -30,7 +30,7 @@ class Level3D {
         this.bgmTheme = 'overworld';
         this.skyColor = 0x5c94fc;
         this.fogColor = 0xb0d0ff;
-        this.spawnPoint = new THREE.Vector3(0, 2, 0);
+        this.spawnPoint = new THREE.Vector3(0, 2.0, 0);
         this.timeLimit = 400;
 
         // Shared materials
@@ -71,7 +71,7 @@ class Level3D {
         });
     }
 
-    // Helper: add solid platform box
+    // Helper: add solid platform box (y is bottom, y + h is top surface)
     addPlatform(x, y, z, w, h, d, material = this.platformMat) {
         const geo = new THREE.BoxGeometry(w, h, d);
         const mesh = new THREE.Mesh(geo, material);
@@ -177,17 +177,17 @@ class Level3D {
         this.bgmTheme = 'overworld';
         this.skyColor = 0x5c94fc;
         this.fogColor = 0xb5d4fc;
-        this.spawnPoint.set(0, 1.5, 0);
+        this.spawnPoint.set(0, 2.0, 0);
 
         // Floating Clouds
         for (let i = 0; i < 15; i++) {
             this.addCloud(i * 14 - 10, 14 + Math.sin(i) * 3, (Math.random() - 0.5) * 20, 1.0 + Math.random() * 0.5);
         }
 
-        // Section 1: Starting Area
-        this.addPlatform(12, 0, 0, 30, 2, 8); // Start lawn [ -3 to 27 ]
+        // Section 1: Starting Area (top = 2.0)
+        this.addPlatform(12, 0, 0, 30, 2, 8); // [ -3 to 27 ], top = 2.0
 
-        // Question block with Coin
+        // Question block with Coin (y=4.5, bottom is 4.0, 2.0 above ground)
         const q1 = new QuestionBlock3D(8, 4.5, 0, 'coin');
         this.blocks.push(q1);
         this.colliders.push(q1);
@@ -210,12 +210,12 @@ class Level3D {
 
         // Floating Coins arc
         for (let i = 0; i < 5; i++) {
-            const coin = new Coin3D(4 + i * 1.5, 3.5 + Math.sin(i / 4 * Math.PI) * 1.5, 0);
+            const coin = new Coin3D(4 + i * 1.5, 3.5 + Math.sin(i / 4 * Math.PI) * 1.2, 0);
             this.coins.push(coin);
             this.scene.add(coin.group);
         }
 
-        // First Goomba
+        // First Goomba (on ground at 2.0)
         const g1 = new Goomba3D(18, 2.0, 0, 4);
         this.enemies.push(g1);
         this.scene.add(g1.group);
@@ -225,11 +225,11 @@ class Level3D {
         this.colliders.push(p1);
         this.scene.add(p1.group);
 
-        // Section 2: Small chasm with stepping platforms
+        // Section 2: Small chasm with stepping platforms (top = 2.0)
         this.addPlatform(36, 0, 0, 10, 2, 8);
 
         // Question block with Fire Flower
-        const q3 = new QuestionBlock3D(36, 5.0, 0, 'flower');
+        const q3 = new QuestionBlock3D(36, 4.8, 0, 'flower');
         this.blocks.push(q3);
         this.colliders.push(q3);
         this.scene.add(q3.group);
@@ -240,8 +240,8 @@ class Level3D {
         this.scene.add(k1.group);
 
         // Section 3: High Elevated Island with stairs
-        this.addPlatform(48, 1, 0, 8, 4, 8);
-        this.addPlatform(56, 3, 0, 6, 8, 8);
+        this.addPlatform(48, 0, 0, 8, 3.5, 8); // top = 3.5
+        this.addPlatform(56, 0, 0, 8, 5.0, 8); // top = 5.0
 
         // Coins on elevated island
         for (let i = 0; i < 4; i++) {
@@ -250,32 +250,33 @@ class Level3D {
             this.scene.add(coin.group);
         }
 
-        // Two Goombas on high island
-        const g2 = new Goomba3D(55, 7.0, -1, 2);
-        const g3 = new Goomba3D(56, 7.0, 1, 2);
+        // Goombas on high island (top = 5.0)
+        const g2 = new Goomba3D(55, 5.0, -1, 2);
+        const g3 = new Goomba3D(56, 5.0, 1, 2);
         [g2, g3].forEach(g => {
             this.enemies.push(g);
             this.scene.add(g.group);
         });
 
         // Section 4: Chasm with Moving Platform
-        const mp1 = new MovingPlatform3D(65, 5, 0, 3.5, 3.5, 'x', 4, 1.8);
+        const mp1 = new MovingPlatform3D(66, 4.5, 0, 3.5, 3.5, 'x', 4, 1.8);
         this.movingPlatforms.push(mp1);
         this.colliders.push(mp1);
         this.scene.add(mp1.group);
 
         // Star block on moving platform path
-        const qStar = new QuestionBlock3D(65, 8.5, 0, 'star');
+        const qStar = new QuestionBlock3D(66, 7.8, 0, 'star');
         this.blocks.push(qStar);
         this.colliders.push(qStar);
         this.scene.add(qStar.group);
 
-        // Section 5: Goal Run & Castle Lawn
+        // Section 5: Goal Run & Castle Lawn (top = 2.0)
         this.addPlatform(88, 0, 0, 32, 2, 10);
 
         // Pyramid Stairs up to flagpole
-        for (let step = 0; step < 5; step++) {
-            this.addPlatform(78 + step * 1.5, 1 + step * 0.8, 0, 1.5, (step + 1) * 0.8, 6, this.platformMat);
+        for (let step = 0; step < 4; step++) {
+            const sh = (step + 1) * 0.7;
+            this.addPlatform(78 + step * 1.5, 2.0, 0, 1.5, sh, 6, this.platformMat);
         }
 
         // Goomba guarding the stairs
@@ -283,7 +284,7 @@ class Level3D {
         this.enemies.push(g4);
         this.scene.add(g4.group);
 
-        // Flagpole at X = 95
+        // Flagpole at X = 95, top surface = 2.0
         this.flagpole = new FlagPole3D(95, 2.0, 0);
         this.colliders.push(this.flagpole);
         this.scene.add(this.flagpole.group);
@@ -301,87 +302,87 @@ class Level3D {
         this.bgmTheme = 'underground';
         this.skyColor = 0x2e1a47; // Twilight purple
         this.fogColor = 0x482d6e;
-        this.spawnPoint.set(0, 3, 0);
+        this.spawnPoint.set(0, 3.0, 0);
 
         // Fluffy clouds beneath islands
         for (let i = 0; i < 20; i++) {
             this.addCloud(i * 10 - 15, -4, (Math.random() - 0.5) * 25, 2.0);
         }
 
-        // Island 1: Start Base
-        this.addPlatform(6, 1, 0, 16, 3, 10);
+        // Island 1: Start Base (y = 0, h = 3, top = 3.0)
+        this.addPlatform(6, 0, 0, 16, 3, 10);
 
-        // Coins circle
+        // Coins circle at Y = 4.0
         for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
-            const coin = new Coin3D(6 + Math.cos(a) * 3, 3.5, Math.sin(a) * 3);
+            const coin = new Coin3D(6 + Math.cos(a) * 3, 4.0, Math.sin(a) * 3);
             this.coins.push(coin);
             this.scene.add(coin.group);
         }
 
         // Question block with Flower
-        const q1 = new QuestionBlock3D(6, 6.0, 0, 'flower');
+        const q1 = new QuestionBlock3D(6, 5.8, 0, 'flower');
         this.blocks.push(q1);
         this.colliders.push(q1);
         this.scene.add(q1.group);
 
         // Island 2: Vertical Elevator
-        const vElevator = new MovingPlatform3D(18, 4, 0, 4, 4, 'y', 3.5, 1.5);
+        const vElevator = new MovingPlatform3D(18, 4.0, 0, 4, 4, 'y', 2.5, 1.5);
         this.movingPlatforms.push(vElevator);
         this.colliders.push(vElevator);
         this.scene.add(vElevator.group);
 
-        // Island 3: High Sky Island
-        this.addPlatform(30, 6, 0, 14, 2, 8);
+        // Island 3: High Sky Island (y = 3, h = 3, top = 6.0)
+        this.addPlatform(30, 3, 0, 14, 3, 8);
 
-        // Pipe with Piranha Plant
-        const p1 = new WarpPipe3D(28, 8.0, 0, 2.0);
+        // Pipe with Piranha Plant at top 6.0
+        const p1 = new WarpPipe3D(28, 6.0, 0, 2.0);
         this.colliders.push(p1);
         this.scene.add(p1.group);
 
-        const piranha = new PiranhaPlant3D(28, 9.8, 0);
+        const piranha = new PiranhaPlant3D(28, 7.8, 0);
         this.enemies.push(piranha);
         this.scene.add(piranha.group);
 
-        // Koopa on High Island
-        const k1 = new Koopa3D(33, 8.0, 0, 2.5);
+        // Koopa on High Island (top = 6.0)
+        const k1 = new Koopa3D(33, 6.0, 0, 2.5);
         this.enemies.push(k1);
         this.scene.add(k1.group);
 
         // Question Block with 1-UP Mushroom!
-        const q1Up = new QuestionBlock3D(34, 11.0, 0, 'mushroom');
+        const q1Up = new QuestionBlock3D(34, 8.8, 0, 'mushroom');
         this.blocks.push(q1Up);
         this.colliders.push(q1Up);
         this.scene.add(q1Up.group);
 
-        // Island 4: Moving Platform horizontal over abyss
-        const hMove = new MovingPlatform3D(44, 6, 0, 3.5, 3.5, 'z', 4, 2.0);
+        // Island 4: Moving Platform horizontal over abyss (top = 6.0)
+        const hMove = new MovingPlatform3D(44, 5.7, 0, 3.5, 3.5, 'z', 4, 2.0);
         this.movingPlatforms.push(hMove);
         this.colliders.push(hMove);
         this.scene.add(hMove.group);
 
-        // Island 5: Long Island with Star Power
-        this.addPlatform(60, 6, 0, 20, 2, 8);
+        // Island 5: Long Island with Star Power (y = 3, h = 3, top = 6.0)
+        this.addPlatform(60, 3, 0, 20, 3, 8);
 
-        const qStar = new QuestionBlock3D(54, 9.5, 0, 'star');
+        const qStar = new QuestionBlock3D(54, 8.8, 0, 'star');
         this.blocks.push(qStar);
         this.colliders.push(qStar);
         this.scene.add(qStar.group);
 
-        // Row of Goombas to smash with Star
+        // Row of Goombas to smash with Star (top = 6.0)
         for (let i = 0; i < 4; i++) {
-            const g = new Goomba3D(58 + i * 2.5, 8.0, 0, 1.5);
+            const g = new Goomba3D(58 + i * 2.5, 6.0, 0, 1.5);
             this.enemies.push(g);
             this.scene.add(g.group);
         }
 
-        // Island 6: Final Approach & Flagpole
-        this.addPlatform(82, 6, 0, 18, 2, 10);
+        // Island 6: Final Approach & Flagpole (y = 3, h = 3, top = 6.0)
+        this.addPlatform(82, 3, 0, 18, 3, 10);
 
-        this.flagpole = new FlagPole3D(84, 8.0, 0);
+        this.flagpole = new FlagPole3D(84, 6.0, 0);
         this.colliders.push(this.flagpole);
         this.scene.add(this.flagpole.group);
 
-        this.addCastle(96, 8.0, 0);
+        this.addCastle(96, 6.0, 0);
     }
 
     // ==============================================================
@@ -393,7 +394,7 @@ class Level3D {
         this.bgmTheme = 'castle';
         this.skyColor = 0x1a0505; // Dark fiery crimson
         this.fogColor = 0x3d0c0c;
-        this.spawnPoint.set(0, 2, 0);
+        this.spawnPoint.set(0, 2.0, 0);
 
         // Giant Lava Sea underneath
         const lavaGeo = new THREE.PlaneGeometry(300, 150);
@@ -402,11 +403,11 @@ class Level3D {
         lava.position.set(50, -4, 0);
         this.scene.add(lava);
 
-        // Castle Stone Fortress Hall
+        // Castle Stone Fortress Hall (top = 2.0)
         this.addPlatform(8, 0, 0, 20, 2, 10, this.stoneMat);
 
         // Question block with Fire Flower
-        const q1 = new QuestionBlock3D(8, 4.5, 0, 'flower');
+        const q1 = new QuestionBlock3D(8, 4.8, 0, 'flower');
         this.blocks.push(q1);
         this.colliders.push(q1);
         this.scene.add(q1.group);
@@ -414,9 +415,9 @@ class Level3D {
         // Rotating Firebar 1
         this.addFirebar(14, 2.5, 0, 4);
 
-        // Platform 2: Stepping stones over lava
+        // Platform 2: Stepping stones over lava (all top = 2.0)
         this.addPlatform(24, 0, -2, 5, 2, 5, this.stoneMat);
-        this.addPlatform(33, 1, 2, 5, 2, 5, this.stoneMat);
+        this.addPlatform(33, 0, 2, 5, 2, 5, this.stoneMat);
         this.addPlatform(42, 0, 0, 6, 2, 8, this.stoneMat);
 
         // Rotating Firebar 2
@@ -424,32 +425,31 @@ class Level3D {
 
         // Coins along jumping path
         for (let i = 0; i < 6; i++) {
-            const coin = new Coin3D(22 + i * 3.5, 4.0, (i % 2 === 0 ? -2 : 2));
+            const coin = new Coin3D(22 + i * 3.5, 3.2, (i % 2 === 0 ? -2 : 2));
             this.coins.push(coin);
             this.scene.add(coin.group);
         }
 
         // ================= BOWSER DRAWBRIDGE ARENA =================
-        // Drawbridge platforms (collapsible when axe is hit!)
+        // Drawbridge platforms (collapsible when axe is hit!) - top = 2.0
         const bridgeX = 64;
-        const bridgeLen = 24;
         for (let b = 0; b < 6; b++) {
-            const bMesh = this.addPlatform(bridgeX - 10 + b * 4, 0, 0, 3.8, 1.2, 7, this.woodMat);
+            const bMesh = this.addPlatform(bridgeX - 10 + b * 4, 0, 0, 3.8, 2.0, 7, this.woodMat);
             this.bridgeMeshes.push(bMesh);
         }
 
-        // Boss: Bowser!
-        this.bowser = new Bowser3D(68, 1.2, 0);
+        // Boss: Bowser! (on bridge top = 2.0)
+        this.bowser = new Bowser3D(68, 2.0, 0);
         this.enemies.push(this.bowser);
         this.scene.add(this.bowser.group);
 
-        // Far Side Throne Platform
+        // Far Side Throne Platform (top = 2.0)
         this.addPlatform(86, 0, 0, 14, 2, 10, this.stoneMat);
 
-        // Golden Axe Switch at X = 81 (touching it cuts bridge!)
+        // Golden Axe Switch at X = 80, Y = 2.0
         this.addAxeSwitch(80, 2.0, 0);
 
-        // Princess Peach Chamber at X = 90
+        // Princess Peach Chamber at X = 90, Y = 2.0
         this.addPrincessChamber(90, 2.0, 0);
     }
 
